@@ -1,0 +1,19 @@
+{
+  "name": "playwright-serverest-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "test": "playwright test",
+    "test:report": "playwright show-report",
+    "api": "serverest --porta 3000 --nodoc"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "serverest": "^3.2.2"
+  }
+}

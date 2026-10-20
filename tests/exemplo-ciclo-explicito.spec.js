@@ -1,7 +1,6 @@
 import { test, expect } from '../fixtures.js';
 import { buildUsuario } from '../data/usuario.factory.js';
 
-// Exemplo didático: o mesmo ciclo que as fixtures fazem, escrito por extenso
 test('ciclo completo: cria, testa e apaga o usuário via API', async ({ usuariosClient }) => {
   const payload = buildUsuario();
   const id = await usuariosClient.create(payload);                 // 1. POST

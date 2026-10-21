@@ -170,6 +170,11 @@ Os cenários marcados com `@smoke` cobrem o caminho principal de cada funcionali
 
 Assim o defeito fica registrado junto do código, sem ser esquecido e sem deixar a suíte vermelha.
 
+## Documentação
+
+- 📋 **[Estratégia de testes](docs/estrategia-de-testes.md):** escopo, pirâmide de testes, técnicas, gestão de defeitos e rastreabilidade das regras de negócio.
+- 🐞 **[BUG-001: senha exposta na listagem de usuários](docs/bugs/BUG-001-senha-exposta-na-listagem-de-usuarios.md):** bug report completo, com passos, evidências e impacto.
+
 ## Decisões técnicas
 
 - **Playwright para API e E2E:** um runner só, com fixtures, paralelismo e relatório compartilhados entre as duas camadas.
@@ -216,6 +221,7 @@ npm run test:report    # abre o relatório HTML
 ├── data/                   # factories que geram dados únicos para cada teste
 ├── schemas/                # contratos (JSON Schema) das respostas
 ├── support/                # matcher toMatchSchema
+├── docs/                   # estratégia de testes e bug reports
 ├── fixtures.js             # dados criados e apagados pela API (usados pela API e pelo E2E)
 ├── tests/
 │   ├── api/                # specs de API

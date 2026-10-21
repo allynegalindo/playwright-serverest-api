@@ -172,7 +172,7 @@ Assim o defeito fica registrado junto do código, sem ser esquecido e sem deixar
 
 ## Documentação
 
-- 📋 **[Estratégia de testes](docs/estrategia-de-testes.md):** escopo, análise de risco, pirâmide, técnicas, critérios de aceite da suíte, gestão de defeitos, testes exploratórios e rastreabilidade das regras de negócio.
+- 📋 **[Estratégia de testes](docs/estrategia-de-testes.md):** escopo, pirâmide de testes, técnicas, gestão de defeitos e rastreabilidade das regras de negócio.
 - 🐞 **[BUG-001: senha exposta na listagem de usuários](docs/bugs/BUG-001-senha-exposta-na-listagem-de-usuarios.md):** bug report completo, com passos, evidências e impacto.
 - 🧭 **[Decisões técnicas (ADRs)](docs/adr/README.md):** o contexto, as alternativas e as consequências de cada decisão importante do projeto.
 

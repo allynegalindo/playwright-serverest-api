@@ -76,6 +76,18 @@ test.describe('Cadastro de usuários', () => {
     });
   }
 
+  // Sem fixture: o próprio cenário é a exclusão. Se o teste falhar antes do DELETE,
+  // o cleanup() do usuariosClient apaga o usuário ao final
+  test('apaga usuário e ele deixa de existir', async ({ usuariosClient }) => {
+    const id = await usuariosClient.create(buildUsuario());
+
+    await usuariosClient.remove(id);
+
+    const res = await usuariosClient.get(id);
+    expect(res.status()).toBe(400);
+    expect(await res.json()).toEqual({ message: 'Usuário não encontrado' });
+  });
+
   // Bug conhecido: o teste fica marcado como "falha esperada". Quando a API for corrigida,
   // ele passa a "falhar" e avisa que a marcação pode ser removida.
   test.fail(

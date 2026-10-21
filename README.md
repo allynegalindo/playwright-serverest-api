@@ -54,7 +54,25 @@ test('edita produto criado pela própria automação', async ({ produtosClient, 
 
 Quando uma fixture depende de outra (o produto exige um usuário administrador), o Playwright desmonta na ordem inversa: primeiro apaga o produto, depois o usuário.
 
-O arquivo [`tests/exemplo-ciclo-explicito.spec.js`](tests/exemplo-ciclo-explicito.spec.js) mostra o mesmo ciclo escrito por extenso, sem fixture, para facilitar o entendimento.
+### O mesmo ciclo sem fixture
+
+Para entender o que a fixture faz por baixo, este é o mesmo ciclo escrito por extenso. O `finally` garante o DELETE mesmo se o teste falhar:
+
+```js
+test('consulta usuário criado pela própria automação', async ({ usuariosClient }) => {
+  const payload = buildUsuario();
+  const id = await usuariosClient.create(payload); // 1. POST
+
+  try {
+    const res = await usuariosClient.get(id);      // 2. teste
+    await expect(res).toBeOK();
+  } finally {
+    await usuariosClient.remove(id);               // 3. DELETE
+  }
+});
+```
+
+Funciona, mas o `try/finally` se repetiria em todo teste. A fixture escreve esse ciclo uma vez só, e cada teste apenas declara do que precisa.
 
 ### E os testes negativos?
 

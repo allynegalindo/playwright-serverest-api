@@ -1,7 +1,7 @@
-import { test, expect } from '../fixtures.js';
-import { ProdutosClient } from '../api/produtos.client.js';
-import { buildProduto } from '../data/produto.factory.js';
-import { produtoSchema, erroValidacaoSchema } from '../schemas/index.js';
+import { test, expect } from '../../fixtures.js';
+import { ProdutosClient } from '../../api/produtos.client.js';
+import { buildProduto } from '../../data/produto.factory.js';
+import { produtoSchema, erroValidacaoSchema } from '../../schemas/index.js';
 
 test.describe('Cadastro de produtos', () => {
   // Editar um produto "qualquer" da base alteraria dados de outras pessoas e
@@ -77,10 +77,10 @@ test.describe('Valores limite de preço e quantidade', () => {
 });
 
 test.describe('Autorização em produtos', () => {
-  test('usuário comum não cadastra produto', async ({ request, usuariosClient, cliente, produtosClient }) => {
+  test('usuário comum não cadastra produto', async ({ apiRequest, usuariosClient, cliente, produtosClient }) => {
     const token = await usuariosClient.login(cliente.payload);
 
-    const res = await new ProdutosClient(request, token).post(buildProduto());
+    const res = await new ProdutosClient(apiRequest, token).post(buildProduto());
     await produtosClient.track(res); // se a API aceitar por engano, o admin apaga ao final
 
     expect(res.status()).toBe(403);
@@ -93,8 +93,8 @@ test.describe('Autorização em produtos', () => {
   ];
 
   for (const { caso, token } of tokensInvalidos) {
-    test(`recusa cadastro ${caso}`, async ({ request, produtosClient }) => {
-      const res = await new ProdutosClient(request, token).post(buildProduto());
+    test(`recusa cadastro ${caso}`, async ({ apiRequest, produtosClient }) => {
+      const res = await new ProdutosClient(apiRequest, token).post(buildProduto());
       await produtosClient.track(res);
 
       expect(res.status()).toBe(401);

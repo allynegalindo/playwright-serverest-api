@@ -38,6 +38,18 @@ export class UsuariosClient {
     this.#criados.delete(id);
   }
 
+  // Apaga se ainda existir: para teardown, quando o próprio teste pode ter apagado
+  async discard(id) {
+    await expect(await this.request.delete(`/usuarios/${id}`)).toBeOK();
+    this.#criados.delete(id);
+  }
+
+  // Para usuários cadastrados pela interface, cujo id o teste não conhece
+  async discardByEmail(email) {
+    const { usuarios } = await (await this.list({ email })).json();
+    for (const { _id } of usuarios) await this.discard(_id);
+  }
+
   postLogin({ email, password }) {
     return this.request.post('/login', { data: { email, password } });
   }
@@ -56,6 +68,6 @@ export class UsuariosClient {
   }
 
   async cleanup() {
-    for (const id of this.#criados) await this.remove(id);
+    for (const id of this.#criados) await this.discard(id);
   }
 }

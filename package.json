@@ -8,8 +8,10 @@
     "node": ">=22.12"
   },
   "scripts": {
-    "test": "playwright test",
-    "test:smoke": "playwright test --grep @smoke",
+    "test": "bddgen && playwright test",
+    "test:api": "playwright test --project=api",
+    "test:e2e": "bddgen && playwright test --project=e2e",
+    "test:smoke": "bddgen && playwright test --grep @smoke",
     "test:report": "playwright show-report",
     "lint": "eslint .",
     "api": "serverest --porta 3000 --nodoc"
@@ -21,6 +23,7 @@
     "eslint": "^10.13.0",
     "eslint-plugin-playwright": "^2.12.1",
     "globals": "^17.13.0",
+    "playwright-bdd": "^9.2.1",
     "serverest": "^3.2.2"
   }
 }

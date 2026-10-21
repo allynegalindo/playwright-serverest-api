@@ -28,6 +28,10 @@ export class ProdutosClient {
     return this.request.get(`/produtos/${id}`);
   }
 
+  list(params) {
+    return this.request.get('/produtos', { params });
+  }
+
   update(id, payload) {
     return this.request.put(`/produtos/${id}`, { data: payload, headers: this.#auth() });
   }
@@ -39,13 +43,25 @@ export class ProdutosClient {
     this.#criados.delete(id);
   }
 
+  // Apaga se ainda existir: para teardown, quando o próprio teste pode ter apagado
+  async discard(id) {
+    await expect(await this.request.delete(`/produtos/${id}`, { headers: this.#auth() })).toBeOK();
+    this.#criados.delete(id);
+  }
+
+  // Para produtos cadastrados pela interface, cujo id o teste não conhece
+  async discardByNome(nome) {
+    const { produtos } = await (await this.list({ nome })).json();
+    for (const { _id } of produtos) await this.discard(_id);
+  }
+
   // Mesma rede de segurança do UsuariosClient: nada criado por engano fica na base
   async track(res) {
     if (res.status() === 201) this.#criados.add((await res.json())._id);
   }
 
   async cleanup() {
-    for (const id of this.#criados) await this.remove(id);
+    for (const id of this.#criados) await this.discard(id);
   }
 
   #auth() {

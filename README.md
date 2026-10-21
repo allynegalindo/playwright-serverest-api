@@ -1,8 +1,20 @@
-# Testes de API sem lixo na base: POST → Teste → DELETE
+# Testes de API com Playwright e ServeRest
 
 [![API tests](https://github.com/allynegalindo/playwright-serverest-api/actions/workflows/api-tests.yml/badge.svg)](https://github.com/allynegalindo/playwright-serverest-api/actions/workflows/api-tests.yml)
+[![Relatório](https://img.shields.io/badge/relat%C3%B3rio-GitHub%20Pages-2ea44f)](https://allynegalindo.github.io/playwright-serverest-api/)
 
-Exemplo de automação de testes de API com [Playwright](https://playwright.dev) e [ServeRest](https://serverest.dev) em que **cada teste cria os próprios dados pela API e os apaga ao final**.
+Automação de testes de API com [Playwright](https://playwright.dev) sobre a [ServeRest](https://serverest.dev), feita para responder a uma pergunta: **como escrever testes de API que rodam em paralelo, validam o contrato e não deixam lixo na base?**
+
+📊 **[Ver o último relatório de execução](https://allynegalindo.github.io/playwright-serverest-api/)**
+
+## Destaques
+
+- **Dados próprios por teste:** cada teste cria o que precisa pela API e apaga ao final, mesmo se falhar.
+- **Rede de segurança para testes negativos:** se a API aceitar por engano algo que deveria recusar, o registro criado ainda é apagado.
+- **Validação de contrato:** as respostas são validadas contra JSON Schema, com um matcher próprio (`toMatchSchema`).
+- **Técnicas de teste explícitas:** particionamento de equivalência, análise de valor limite e testes orientados a dados.
+- **Bug documentado no código:** um defeito real da API vira um teste de "falha esperada", que avisa quando for corrigido.
+- **Pipeline completo:** lint, testes em paralelo, retry que expõe flakiness e relatório publicado no GitHub Pages.
 
 ## O problema
 
@@ -42,7 +54,69 @@ test('edita produto criado pela própria automação', async ({ produtosClient, 
 
 Quando uma fixture depende de outra (o produto exige um usuário administrador), o Playwright desmonta na ordem inversa: primeiro apaga o produto, depois o usuário.
 
-O arquivo [`tests/exemplo-ciclo-explicito.spec.js`](tests/exemplo-ciclo-explicito.spec.js) mostra o mesmo ciclo escrito por extenso, sem fixture, para facilitar o entendimento.
+### O mesmo ciclo sem fixture
+
+Para entender o que a fixture faz por baixo, este é o mesmo ciclo escrito por extenso. O `finally` garante o DELETE mesmo se o teste falhar:
+
+```js
+test('consulta usuário criado pela própria automação', async ({ usuariosClient }) => {
+  const payload = buildUsuario();
+  const id = await usuariosClient.create(payload); // 1. POST
+
+  try {
+    const res = await usuariosClient.get(id);      // 2. teste
+    await expect(res).toBeOK();
+  } finally {
+    await usuariosClient.remove(id);               // 3. DELETE
+  }
+});
+```
+
+Funciona, mas o `try/finally` se repetiria em todo teste. A fixture escreve esse ciclo uma vez só, e cada teste apenas declara do que precisa.
+
+### E os testes negativos?
+
+Um teste que espera `400` para um e-mail duplicado não deveria criar nada. Mas, se a API tiver um bug e aceitar o cadastro, o teste falha **e** deixa um registro para trás.
+
+Para evitar isso, os clients guardam todo registro que a API criou (status `201`). Ao final do teste, a fixture apaga o que ainda existir:
+
+```js
+usuariosClient: async ({ request }, use) => {
+  const client = new UsuariosClient(request);
+  await use(client);
+  await client.cleanup(); // apaga usuários que algum teste criou por engano
+},
+```
+
+## Estratégia de testes
+
+| Área | O que é verificado | Técnica |
+| --- | --- | --- |
+| Login | Sucesso, senha errada, campos obrigatórios | Particionamento de equivalência |
+| Usuários | Contrato, e-mail duplicado, campos obrigatórios, formatos inválidos, campo não permitido | Contrato (JSON Schema), testes orientados a dados |
+| Produtos | Contrato, edição, nome duplicado, produto inexistente | Contrato (JSON Schema) |
+| Preço e quantidade | `preco` inteiro ≥ 1 e `quantidade` inteiro ≥ 0 | Análise de valor limite |
+| Autorização | Usuário comum (403), sem token e token inválido (401) | Testes orientados a dados |
+
+Os cenários marcados com `@smoke` cobrem o caminho principal de cada recurso e rodam em segundos (`npm run test:smoke`).
+
+### Bug encontrado
+
+`GET /usuarios` devolve a **senha dos usuários em texto puro**. O teste [`não expõe a senha na listagem de usuários`](tests/usuarios.spec.js) está marcado com `test.fail` e com a anotação `bug`:
+
+- hoje ele "passa", porque a falha é esperada, e o pipeline continua verde;
+- quando a API for corrigida, ele passa a falhar e avisa que a marcação pode ser removida.
+
+Assim o defeito fica registrado junto do código, sem ser esquecido e sem deixar a suíte vermelha.
+
+## Decisões técnicas
+
+- **Playwright para API:** o mesmo runner serve para API e E2E, com fixtures, paralelismo e relatório HTML prontos, sem precisar de outra biblioteca de HTTP.
+- **Clients com dois tipos de método:** `post()` devolve a resposta crua, para testes que verificam erros. `create()` já valida o sucesso e devolve o id, para quando o cadastro é só preparação do teste.
+- **`toEqual` nas mensagens de erro:** compara o corpo inteiro, então um campo de erro a mais ou a menos faz o teste falhar.
+- **`additionalProperties: false` nos schemas:** um campo novo na resposta quebra o teste de contrato de propósito. Mudança de contrato precisa ser percebida.
+- **Retry só no CI, e só 1:** um teste que passa apenas na segunda tentativa aparece como *flaky* no relatório, em vez de ser escondido.
+- **Validação do DELETE pela mensagem:** a ServeRest responde `200` mesmo quando não apaga nada, então o status sozinho não basta.
 
 ## Como rodar
 
@@ -50,7 +124,9 @@ Pré-requisito: **Node.js 22.12 ou mais recente**.
 
 ```bash
 npm install
-npm test               # sobe a ServeRest local e roda os testes
+npm test               # sobe a ServeRest local e roda todos os testes
+npm run test:smoke     # só os cenários @smoke
+npm run lint           # ESLint com as regras do plugin do Playwright
 npm run test:report    # abre o relatório HTML
 ```
 
@@ -65,20 +141,22 @@ API_URL=https://serverest.dev npm test
 ```
 ├── api/                 # clients da API (uma classe por recurso)
 ├── data/                # factories que geram dados únicos para cada teste
+├── schemas/             # contratos (JSON Schema) das respostas
+├── support/             # matcher toMatchSchema
 ├── tests/               # cenários de teste
 ├── fixtures.js          # setup (POST) e teardown (DELETE) dos dados
-└── playwright.config.js # baseURL, paralelismo e servidor local
+└── playwright.config.js # baseURL, paralelismo, retries e servidor local
 ```
 
-## Boas práticas aplicadas
+## Pipeline
 
-- **Dados únicos por teste:** e-mails e nomes com sufixo aleatório e prefixo `auto-`, o que permite rodar em paralelo e identificar facilmente qualquer dado que tenha sobrado.
-- **Teardown garantido:** o DELETE roda mesmo quando o teste falha.
-- **Validação do DELETE pela mensagem:** a ServeRest responde 200 mesmo quando não apaga nada, então o status sozinho não basta.
-- **Clients isolados:** os testes não montam requisições na mão; usam métodos como `create`, `get` e `remove`.
-- **Configuração por ambiente:** a URL da API vem da variável `API_URL`.
+A cada pull request e a cada push na `main`, o GitHub Actions:
 
-> **Limitação:** se o processo for interrompido à força (Ctrl+C, pipeline cancelada), o teardown não roda. O prefixo `auto-` facilita uma limpeza periódica como rede de segurança.
+1. roda o **lint**, em paralelo com os testes;
+2. roda os **testes**, com `forbidOnly` (um `test.only` esquecido quebra o build) e anotações de falha direto no PR;
+3. **publica o relatório** HTML no GitHub Pages (só na `main`), mesmo quando algum teste falha.
+
+> **Limitação:** se o processo for interrompido à força (Ctrl+C, pipeline cancelada), o teardown não roda. O prefixo `auto-` nos dados facilita uma limpeza periódica como última rede de segurança.
 
 ## Licença
 

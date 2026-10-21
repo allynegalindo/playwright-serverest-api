@@ -1,4 +1,4 @@
-name: API tests
+name: Tests
 
 on:
   push:
@@ -32,6 +32,7 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - run: npx playwright install --with-deps chromium
       - run: npm test
 
       - uses: actions/upload-artifact@v4

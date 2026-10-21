@@ -1,6 +1,6 @@
-import { test, expect } from '../fixtures.js';
-import { buildUsuario } from '../data/usuario.factory.js';
-import { usuarioSchema, loginSchema, erroValidacaoSchema } from '../schemas/index.js';
+import { test, expect } from '../../fixtures.js';
+import { buildUsuario } from '../../data/usuario.factory.js';
+import { usuarioSchema, loginSchema, erroValidacaoSchema } from '../../schemas/index.js';
 
 test.describe('Login', () => {
   test('faz login com usuário criado pela própria automação', { tag: '@smoke' }, async ({ usuariosClient, admin }) => {

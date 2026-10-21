@@ -174,28 +174,17 @@ Assim o defeito fica registrado junto do código, sem ser esquecido e sem deixar
 
 - 📋 **[Estratégia de testes](docs/estrategia-de-testes.md):** escopo, pirâmide de testes, técnicas, gestão de defeitos e rastreabilidade das regras de negócio.
 - 🐞 **[BUG-001: senha exposta na listagem de usuários](docs/bugs/BUG-001-senha-exposta-na-listagem-de-usuarios.md):** bug report completo, com passos, evidências e impacto.
-- 🧭 **[Decisões técnicas (ADRs)](docs/adr/README.md):** o contexto, as alternativas e as consequências de cada decisão importante do projeto.
 
 ## Decisões técnicas
 
-As principais decisões têm um ADR próprio:
-
-| Decisão | ADR |
-| --- | --- |
-| Playwright como runner único para API e E2E | [0002](docs/adr/0002-playwright-como-runner-unico.md) |
-| Cada teste é dono dos próprios dados, com teardown tolerante | [0003](docs/adr/0003-cada-teste-e-dono-dos-proprios-dados.md) |
-| Validação de contrato com JSON Schema | [0004](docs/adr/0004-contrato-com-json-schema.md) |
-| BDD com playwright-bdd em vez de Cucumber.js | [0005](docs/adr/0005-bdd-com-playwright-bdd.md) |
-| Login pela API nos cenários E2E | [0006](docs/adr/0006-login-pela-api-nos-cenarios-e2e.md) |
-| Bugs conhecidos documentados com `test.fail` | [0007](docs/adr/0007-bugs-conhecidos-com-test-fail.md) |
-| API testada localmente e E2E no ambiente público | [0008](docs/adr/0008-api-local-e-e2e-no-ambiente-publico.md) |
-
-Decisões menores, explicadas aqui mesmo:
-
+- **Playwright para API e E2E:** um runner só, com fixtures, paralelismo e relatório compartilhados entre as duas camadas.
+- **playwright-bdd em vez de Cucumber:** os cenários Gherkin viram testes nativos do Playwright, então o BDD não abre mão de paralelismo, fixtures, trace e relatório HTML.
 - **Clients com dois tipos de método:** `post()` devolve a resposta crua, para testes que verificam erros. `create()` já valida o sucesso e devolve o id, para quando o cadastro é só preparação do teste.
+- **`remove()` estrito e `discard()` tolerante:** `remove()` confere a mensagem de exclusão e é usado quando a exclusão é o que está sendo testado. O teardown usa `discard()`, que aceita o registro já apagado, porque a limpeza não deve derrubar um teste por algo que ele não verifica.
 - **Page Objects sem asserções:** as páginas só sabem localizar e agir. Quem decide o que é certo ou errado são os steps.
 - **Seletores por `data-testid` e papel acessível:** não dependem de layout nem de classes CSS.
 - **`toEqual` nas mensagens de erro:** compara o corpo inteiro, então um campo de erro a mais ou a menos faz o teste falhar.
+- **`additionalProperties: false` nos schemas:** um campo novo na resposta quebra o teste de contrato de propósito. Mudança de contrato precisa ser percebida.
 - **Retry só no CI, e só 1:** um teste que passa apenas na segunda tentativa aparece como *flaky* no relatório, em vez de ser escondido.
 - **Timeout de asserção de 10s no E2E, medido:** no ambiente público, o cadastro de usuário leva de 4 a 5,5s até redirecionar. O limite foi ajustado com base nessa medição, sem `waitForTimeout` fixo.
 - **Validação do DELETE pela mensagem:** a ServeRest responde `200` mesmo quando não apaga nada, então o status sozinho não basta.
@@ -232,7 +221,7 @@ npm run test:report    # abre o relatório HTML
 ├── data/                   # factories que geram dados únicos para cada teste
 ├── schemas/                # contratos (JSON Schema) das respostas
 ├── support/                # matcher toMatchSchema
-├── docs/                   # estratégia de testes, bug reports e ADRs
+├── docs/                   # estratégia de testes e bug reports
 ├── fixtures.js             # dados criados e apagados pela API (usados pela API e pelo E2E)
 ├── tests/
 │   ├── api/                # specs de API
